@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traductor Multilingüe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        .main-container {
+            max-width: 960px;
+            width: 100%;
+        }
+        .speaker-button {
+            background-color: transparent;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .speaker-button:hover {
+            transform: scale(1.1);
+        }
+        .speaker-icon {
+            fill: #4b5563;
+        }
+        .result-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background-color: #fff;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 0.75rem;
+        }
+        .language-selector {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill="%234B5563" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" fill-rule="evenodd"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em;
+        }
+        .lang-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: #e0e7ff;
+            color: #3730a3;
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .remove-tag {
+            margin-left: 0.5rem;
+            cursor: pointer;
+            color: #4338ca;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="main-container bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Traductor Multilingüe</h1>
+        
+        <div class="flex flex-col md:flex-row gap-6 mb-6">
+            <div class="flex-1 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-700 mb-4">Texto de entrada</h2>
+                <div class="mb-4">
+                    <label for="source-lang" class="block text-gray-600 mb-2">Selecciona el idioma de origen:</label>
+                    <select id="source-lang" class="language-selector w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                </div>
+                <textarea id="word-input" class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe aquí..."></textarea>
+            </div>
+
+            <div class="flex-1 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-700 mb-4">Traducción</h2>
+                <div class="mb-4">
+                    <label for="target-lang-select" class="block text-gray-600 mb-2">Selecciona los idiomas de destino:</label>
+                    <div id="selected-langs-container" class="mb-2">
+                        </div>
+                    <select id="target-lang-select" class="language-selector w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="" disabled selected>Añadir idioma...</option>
+                    </select>
+                </div>
+                <div id="results-container" class="mt-4">
+                    </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-center">
+            <button id="translate-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200">
+                Traducir
+            </button>
+        </div>
+        
+        <div id="loading-spinner" class="hidden text-center mt-6">
+            <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
+            <p class="mt-2 text-gray-600">Traduciendo...</p>
+        </div>
+
+        <div id="error-message" class="hidden mt-4 p-4 text-red-700 bg-red-100 rounded-lg">
+            </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const wordInput = document.getElementById('word-input');
+            const sourceLangSelect = document.getElementById('source-lang');
+            const targetLangSelect = document.getElementById('target-lang-select');
+            const selectedLangsContainer = document.getElementById('selected-langs-container');
+            const translateButton = document.getElementById('translate-button');
+            const resultsContainer = document.getElementById('results-container');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const errorMessage = document.getElementById('error-message');
+
+            // --- CAMBIO --- Se eliminaron las claves API y URLs de Gemini
+
+            const allLanguages = [
+                // Top 10 most spoken languages (data from 2023)
+                { code: 'zh-CN', name: 'Chino Mandarín' }, // MyMemory usa códigos IETF
+                { code: 'es', name: 'Español' },
+                { code: 'en', name: 'Inglés' },
+                { code: 'hi', name: 'Hindi' },
+                { code: 'bn', name: 'Bengalí' },
+                { code: 'pt', name: 'Portugués' },
+                { code: 'ru', name: 'Ruso' },
+                { code: 'ja', name: 'Japonés' },
+                { code: 'mr', name: 'Marathi' },
+                { code: 'te', name: 'Telugu' },
+                // Other languages in alphabetical order
+                { code: 'ar', name: 'Árabe' },
+                { code: 'de', name: 'Alemán' },
+                { code: 'fr', name: 'Francés' },
+                { code: 'id', name: 'Indonesio' },
+                { code: 'it', name: 'Italiano' },
+                { code: 'ko', name: 'Coreano' },
+                { code: 'nl', name: 'Neerlandés' },
+                { code: 'pl', name: 'Polaco' },
+                { code: 'ro', name: 'Rumano' },
+                { code: 'th', name: 'Tailandés' },
+                { code: 'tr', name: 'Turco' },
+                { code: 'uk', name: 'Ucraniano' },
+                { code: 'vi', name: 'Vietnamita' }
+            ];
+
+            function populateSourceLanguages() {
+                allLanguages.forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang.code;
+                    option.textContent = lang.name;
+                    sourceLangSelect.appendChild(option);
+                });
+            }
+
+            function populateTargetLanguages() {
+                targetLangSelect.querySelectorAll('option:not([disabled])').forEach(opt => opt.remove());
+                const selectedCodes = Array.from(selectedLangsContainer.querySelectorAll('.lang-tag')).map(el => el.dataset.code);
+                
+                allLanguages.forEach(lang => {
+                    if (!selectedCodes.includes(lang.code)) {
+                        const option = document.createElement('option');
+                        option.value = lang.code;
+                        option.textContent = lang.name;
+                        targetLangSelect.appendChild(option);
+                    }
+                });
+            }
+            
+            populateSourceLanguages();
+            populateTargetLanguages();
+            
+            targetLangSelect.addEventListener('change', (e) => {
+                const langCode = e.target.value;
+                if (langCode) {
+                    const langName = allLanguages.find(lang => lang.code === langCode).name;
+                    addLanguageTag(langCode, langName);
+                    e.target.value = ''; // Reset dropdown
+                }
+            });
+
+            function addLanguageTag(code, name) {
+                const tag = document.createElement('span');
+                tag.className = 'lang-tag';
+                tag.dataset.code = code;
+                tag.textContent = name;
+                
+                const removeIcon = document.createElement('span');
+                removeIcon.className = 'remove-tag';
+                removeIcon.innerHTML = '&times;';
+                removeIcon.onclick = () => {
+                    tag.remove();
+                    populateTargetLanguages();
+                };
+
+                tag.appendChild(removeIcon);
+                selectedLangsContainer.appendChild(tag);
+                populateTargetLanguages();
+            }
+
+            // Initial selection
+            sourceLangSelect.value = 'es';
+            addLanguageTag('en', 'Inglés');
+            addLanguageTag('fr', 'Francés');
+            addLanguageTag('pt', 'Portugués');
+            
+            translateButton.addEventListener('click', translateText);
+            
+            // --- CAMBIO --- Función de traducción modificada para usar MyMemory API
+            async function translateText() {
+                const text = wordInput.value.trim();
+                const sourceLang = sourceLangSelect.value;
+                const targetLangs = Array.from(selectedLangsContainer.querySelectorAll('.lang-tag')).map(el => el.dataset.code);
+                
+                if (!text) {
+                    showError('Por favor, ingresa un texto.');
+                    return;
+                }
+                if (targetLangs.length === 0) {
+                    showError('Por favor, selecciona al menos un idioma de destino.');
+                    return;
+                }
+                
+                showLoading(true);
+                resultsContainer.innerHTML = '';
+                showError(false);
+                
+                try {
+                    const translationPromises = targetLangs.map(async (targetLang) => {
+                        const apiUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
+                        
+                        const response = await fetch(apiUrl);
+                        if (!response.ok) {
+                            throw new Error(`Error en la solicitud para ${targetLang}`);
+                        }
+                        const data = await response.json();
+                        
+                        if (data.responseData) {
+                            return { 
+                                langCode: targetLang, 
+                                translation: data.responseData.translatedText 
+                            };
+                        } else {
+                             return { 
+                                langCode: targetLang, 
+                                translation: "Traducción no disponible."
+                            };
+                        }
+                    });
+
+                    const translations = await Promise.all(translationPromises);
+                    
+                    const translatedTexts = {};
+                    translations.forEach(t => {
+                        if (t.translation) {
+                            translatedTexts[t.langCode] = t.translation;
+                        }
+                    });
+
+                    renderTranslations(translatedTexts);
+                } catch (error) {
+                    console.error('Error:', error);
+                    showError('No se pudo traducir. Intenta de nuevo.');
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            function renderTranslations(translations) {
+                for (const langCode in translations) {
+                    if (translations.hasOwnProperty(langCode)) {
+                        const translationText = translations[langCode];
+                        const langName = allLanguages.find(lang => lang.code === langCode)?.name || langCode;
+                        
+                        if (translationText) {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'result-item';
+
+                            const textSpan = document.createElement('span');
+                            textSpan.className = 'text-gray-900';
+                            textSpan.innerHTML = `<span class="font-semibold text-blue-700">${langName}:</span> ${translationText}`;
+
+                            const speakerButton = document.createElement('button');
+                            speakerButton.className = 'speaker-button';
+                            speakerButton.innerHTML = `<svg class="speaker-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 9v6h3l5 5V4L7 9H4zm14.5 3c0-1.77-1-3.29-2.5-4.03v8.05c1.5-.74 2.5-2.26 2.5-4.02zM15 12c0 1.34-.84 2.49-2.02 3.16v-6.33c1.18.67 2.02 1.82 2.02 3.17z"/></svg>`;
+                            speakerButton.title = `Reproducir en ${langName}`;
+                            speakerButton.onclick = () => speakText(translationText, langCode);
+
+                            resultItem.appendChild(textSpan);
+                            resultItem.appendChild(speakerButton);
+                            resultsContainer.appendChild(resultItem);
+                        }
+                    }
+                }
+            }
+            
+            // --- CAMBIO --- Función de voz modificada para usar la Web Speech API del navegador
+            function speakText(text, langCode) {
+                if ('speechSynthesis' in window) {
+                    // Detener cualquier reproducción anterior
+                    window.speechSynthesis.cancel(); 
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = langCode;
+                    
+                    // Opcional: buscar una voz específica si está disponible
+                    const voices = window.speechSynthesis.getVoices();
+                    utterance.voice = voices.find(voice => voice.lang === langCode) || voices.find(voice => voice.lang.startsWith(langCode.split('-')[0]));
+                    
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    showError('Tu navegador no soporta la síntesis de voz.');
+                }
+            }
+
+            // --- CAMBIO --- Eliminadas las funciones de audio 'base64ToArrayBuffer' y 'pcmToWav'
+
+            function showLoading(show) {
+                loadingSpinner.classList.toggle('hidden', !show);
+                translateButton.disabled = show;
+                wordInput.disabled = show;
+                sourceLangSelect.disabled = show;
+                targetLangSelect.disabled = show;
+            }
+
+            function showError(message) {
+                if (message) {
+                    errorMessage.textContent = message;
+                    errorMessage.classList.remove('hidden');
+                } else {
+                    errorMessage.classList.add('hidden');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
